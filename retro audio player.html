@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Cassette Player - Ultimate</title>
+    <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- CSS VARIABLES --- */
+        :root {
+            /* Default Theme (Orange/Brown) */
+            --bg-gradient: linear-gradient(135deg, #4a3b32 0%, #2c1810 100%);
+            --cassette-body: #2a3138;
+            --cassette-body-inset: #1a1f24;
+            --label-bg: #f0eada;
+            --accent-color: #d98837;
+            --progress-bg: rgba(0,0,0,0.25);
+            --marker-color: #222;
+        }
+
+        /* Additional Themes */
+        body.theme-2 { --bg-gradient: linear-gradient(135deg, #1a2a3a 0%, #0f1a25 100%); --cassette-body: #24303a; --cassette-body-inset: #151d24; --label-bg: #e1e8f0; --accent-color: #5dade2; --marker-color: #0a1a2a; }
+        body.theme-3 { --bg-gradient: linear-gradient(135deg, #1a3a2a 0%, #0f251a 100%); --cassette-body: #243a2e; --cassette-body-inset: #15241d; --label-bg: #e1f0e5; --accent-color: #7c9e7c; --marker-color: #0a2a1a; }
+        body.theme-4 { --bg-gradient: linear-gradient(135deg, #2a1a3a 0%, #1a0f25 100%); --cassette-body: #30243a; --cassette-body-inset: #1d1524; --label-bg: #f0e1f0; --accent-color: #9b7c9e; --marker-color: #1a0a2a; }
+        body.theme-5 { --bg-gradient: linear-gradient(135deg, #3a1a1a 0%, #250f0f 100%); --cassette-body: #3a2424; --cassette-body-inset: #241515; --label-bg: #f0e1e1; --accent-color: #e74c3c; --marker-color: #2a0a0a; }
+        body.theme-6 { --bg-gradient: linear-gradient(135deg, #3a1a2a 0%, #250f1a 100%); --cassette-body: #3a2430; --cassette-body-inset: #24151d; --label-bg: #f0e1e8; --accent-color: #ff69b4; --marker-color: #2a0a1a; }
+        body.theme-7 { --bg-gradient: linear-gradient(135deg, #1a3a3a 0%, #0f2525 100%); --cassette-body: #243a3a; --cassette-body-inset: #152424; --label-bg: #e1f0f0; --accent-color: #00ced1; --marker-color: #0a2a2a; }
+        body.theme-8 { --bg-gradient: linear-gradient(135deg, #3a3a1a 0%, #25250f 100%); --cassette-body: #3a3a24; --cassette-body-inset: #242415; --label-bg: #f0f0e1; --accent-color: #f1c40f; --marker-color: #2a2a0a; }
+
+        /* --- BASE STYLES --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 20px;
+            background: var(--bg-gradient);
+            position: relative; overflow: hidden;
+            transition: background 0.5s ease;
+        }
+
+        /* Drag & Drop Overlay Cue */
+        body.drag-active::after {
+            content: 'DROP TAPE HERE';
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 10;
+            display: flex; justify-content: center; align-items: center;
+            color: white; font-size: 40px; font-family: 'Permanent Marker', cursive;
+            pointer-events: none;
+        }
+
+        body::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: 
+                radial-gradient(circle at 50% 50%, transparent 20%, rgba(0,0,0,0.4) 100%),
+                repeating-linear-gradient(45deg, rgba(0,0,0,0.05) 0px, rgba(0,0,0,0.05) 2px, transparent 2px, transparent 4px);
+            pointer-events: none; z-index: 1; mix-blend-mode: overlay;
+        }
+
+        .main-wrapper {
+            position: relative; z-index: 2;
+            display: flex; flex-direction: column; align-items: center; gap: 20px;
+        }
+
+        /* --- THEME SELECTORS --- */
+        .theme-selector { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: 300px; }
+        .theme-dot {
+            width: 25px; height: 25px; border-radius: 50%; cursor: pointer;
+            border: 3px solid rgba(255,255,255,0.2); transition: all 0.3s;
+        }
+        .theme-dot:hover, .theme-dot.active { transform: scale(1.2); border-color: white; }
+        
+        .dot-1 { background: #d98837; } .dot-2 { background: #5dade2; } .dot-3 { background: #7c9e7c; } .dot-4 { background: #9b7c9e; }
+        .dot-5 { background: #e74c3c; } .dot-6 { background: #ff69b4; } .dot-7 { background: #00ced1; } .dot-8 { background: #f1c40f; }
+
+        /* --- CASSETTE BODY --- */
+        .cassette-container {
+            width: 500px; height: 350px;
+            background: var(--cassette-body);
+            border-radius: 20px; position: relative;
+            border: 4px solid var(--cassette-body-inset);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6), inset 0 2px 5px rgba(255,255,255,0.1);
+            overflow: hidden;
+            transition: background 0.5s ease, border-color 0.5s ease;
+        }
+        
+        .cassette-container::after {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.03) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .screw {
+            position: absolute; width: 18px; height: 18px;
+            background: radial-gradient(circle at 30% 30%, #b0b7c0 0%, #7a818a 100%);
+            border-radius: 50%; border: 1px solid #5a616a;
+            box-shadow: inset 0 1px 2px rgba(255,255,255,0.3), 0 2px 3px rgba(0,0,0,0.5);
+        }
+        .screw::before { content: ''; position: absolute; top: 50%; left: 50%; width: 10px; height: 2px; background: #333; transform: translate(-50%, -50%) rotate(45deg); }
+        .screw.tl { top: 12px; left: 12px; } .screw.tr { top: 12px; right: 12px; } .screw.bl { bottom: 12px; left: 12px; } .screw.br { bottom: 12px; right: 12px; }
+
+        /* --- LABEL AREA --- */
+        .cassette-label-area {
+            position: absolute; top: 40px; left: 25px; right: 25px; height: 225px;
+            background: var(--label-bg);
+            border-radius: 12px;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.15);
+            overflow: hidden;
+            display: flex; flex-direction: column;
+            transition: background 0.5s ease;
+        }
+        
+        .handwritten {
+            font-family: 'Permanent Marker', cursive;
+            color: var(--marker-color);
+            opacity: 0.85;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .label-top { padding: 15px 20px 5px; display: flex; justify-content: space-between; align-items: center; }
+        .label-number { font-size: 38px; line-height: 1; transform: rotate(-2deg); }
+        .label-title { font-size: 24px; text-align: center; flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 10px; transform: rotate(-1deg); }
+
+        .rainbow-stripe { height: 25px; width: 100%; display: flex; opacity: 0.8; }
+        .stripe-color { flex: 1; height: 100%; }
+        .s1{background:#f274b3}.s2{background:#f9e36d}.s3{background:#84e0d4}.s4{background:#5dade2}
+
+        .window-area {
+            flex-grow: 1; position: relative; background: var(--cassette-body-inset);
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.5s ease;
+        }
+        
+        /* The Visualizer Canvas */
+        #visualizerCanvas {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 1; opacity: 0.5;
+        }
+
+        .cassette-window {
+            width: 180px; height: 65px; background: rgba(255,255,255,0.15);
+            border-radius: 8px; border: 2px solid rgba(255,255,255,0.1);
+            position: relative; z-index: 2; backdrop-filter: blur(2px);
+            overflow: hidden;
+        }
+        .tape-guide {
+             position: absolute; top: 50%; width: 100%; height: 35px;
+             background: repeating-linear-gradient(90deg, transparent, transparent 4px, rgba(0,0,0,0.5) 4px, rgba(0,0,0,0.5) 5px);
+             transform: translateY(-50%); opacity: 0.4; pointer-events: none; z-index: 3;
+        }
+
+        .cassette-reels {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            display: flex; justify-content: space-between; align-items: center; padding: 0 55px;
+            pointer-events: none; z-index: 4;
+        }
+        
+        .reel {
+            width: 85px; height: 85px; border-radius: 50%;
+            background: radial-gradient(circle, #fff 30%, #ddd 31%, #ccc 100%);
+            border: 3px solid #aaa; position: relative;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+        }
+        .reel-spokes { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
+        .spoke {
+            position: absolute; top: 50%; left: 50%; width: 4px; height: 85px;
+            background: #999; transform: translate(-50%, -50%);
+        }
+        .spoke:nth-child(2) { transform: translate(-50%, -50%) rotate(60deg); }
+        .spoke:nth-child(3) { transform: translate(-50%, -50%) rotate(120deg); }
+
+        .reel.spinning .reel-spokes { animation: spin 4s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        .progress-container {
+            height: 14px; margin: 10px 25px 5px; background: var(--progress-bg);
+            border-radius: 7px; cursor: pointer; position: relative;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.4); overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .progress-bar {
+            height: 100%; width: 0%; background: var(--accent-color);
+            border-radius: 7px; box-shadow: inset 0 2px 2px rgba(255,255,255,0.3), 2px 0 5px rgba(0,0,0,0.3);
+            transition: width 0.1s linear, background 0.5s ease;
+        }
+
+        .label-bottom { padding: 5px 25px 15px; display: flex; justify-content: space-between; font-size: 16px; }
+
+        .integrated-controls {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            display: flex; justify-content: center; align-items: center; gap: 15px;
+            padding: 10px 25px; background: var(--cassette-body-inset);
+            border-radius: 35px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.5), 0 1px 1px rgba(255,255,255,0.1);
+            transition: background 0.5s ease;
+        }
+
+        .control-btn {
+            width: 45px; height: 45px;
+            background: linear-gradient(180deg, #c0c7d0 0%, #8a919a 100%);
+            border: 2px solid #6a717a; border-radius: 50%;
+            font-size: 20px; color: #333; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: all 0.1s;
+        }
+        .control-btn:active { transform: translateY(2px); box-shadow: 0 2px 3px rgba(0,0,0,0.3); }
+        .play-btn { width: 55px; height: 55px; font-size: 26px; background: linear-gradient(180deg, var(--accent-color) 0%, #a06020 100%); color: white; border-color: #804010;}
+        .eject-btn { font-size: 20px; }
+
+        .time-display-waiting {
+            margin-top: 20px; font-family: 'Courier New', monospace;
+            font-size: 18px; color: rgba(255,255,255,0.7);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.3); padding: 5px 15px; border-radius: 5px;
+        }
+
+        #fileInput { display: none; }
+    </style>
+</head>
+<body class="theme-1">
+
+    <div class="main-wrapper">
+        <div class="theme-selector">
+            <div class="theme-dot dot-1 active" onclick="setTheme(1)" title="Classic Orange"></div>
+            <div class="theme-dot dot-2" onclick="setTheme(2)" title="Deep Blue"></div>
+            <div class="theme-dot dot-3" onclick="setTheme(3)" title="Forest Green"></div>
+            <div class="theme-dot dot-4" onclick="setTheme(4)" title="Royal Purple"></div>
+            <div class="theme-dot dot-5" onclick="setTheme(5)" title="Retro Red"></div>
+            <div class="theme-dot dot-6" onclick="setTheme(6)" title="Hot Pink"></div>
+            <div class="theme-dot dot-7" onclick="setTheme(7)" title="Electric Cyan"></div>
+            <div class="theme-dot dot-8" onclick="setTheme(8)" title="Sports Yellow"></div>
+        </div>
+
+        <div class="cassette-container">
+            <div class="screw tl"></div><div class="screw tr"></div>
+            <div class="screw bl"></div><div class="screw br"></div>
+            
+            <div class="cassette-label-area">
+                <div class="label-top handwritten">
+                    <div class="label-number">A</div>
+                    <div class="label-title handwritten" id="tapeLabel">INSERT TAPE</div>
+                </div>
+                
+                <div class="rainbow-stripe">
+                    <div class="stripe-color s1"></div><div class="stripe-color s2"></div>
+                    <div class="stripe-color s3"></div><div class="stripe-color s4"></div>
+                </div>
+                
+                <div class="window-area">
+                    <div class="cassette-window">
+                        <canvas id="visualizerCanvas"></canvas>
+                        <div class="tape-guide"></div>
+                    </div>
+                    <div class="cassette-reels">
+                        <div class="reel" id="reel1"><div class="reel-spokes"><div class="spoke"></div><div class="spoke"></div><div class="spoke"></div></div></div>
+                        <div class="reel" id="reel2"><div class="reel-spokes"><div class="spoke"></div><div class="spoke"></div><div class="spoke"></div></div></div>
+                    </div>
+                </div>
+
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                
+                <div class="label-bottom handwritten">
+                    <div>SIDE 1</div><div>STEREO</div>
+                </div>
+            </div>
+
+            <div class="integrated-controls">
+                <button class="control-btn eject-btn" id="ejectBtn" title="Insert Files">⏏</button>
+                <button class="control-btn" id="prevBtn">⏮</button>
+                <button class="control-btn play-btn" id="playBtn">▶</button>
+                <button class="control-btn" id="nextBtn">⏭</button>
+                <button class="control-btn" style="opacity:0; pointer-events: none;">⏏</button>
+            </div>
+        </div>
+
+        <div class="time-display-waiting" id="timeContainer">
+            <span id="currentTime">0:00</span> / <span id="duration">0:00</span>
+        </div>
+
+        <input type="file" id="fileInput" multiple accept="audio/*">
+    </div>
+
+    <script>
+        // --- GLOBAL VARIABLES ---
+        const audio = new Audio();
+        let playlist = [];
+        let currentTrackIndex = 0;
+        let isPlaying = false;
+        
+        // Web Audio API for Visualizer & SFX
+        let audioCtx; // Initialized on user interaction
+        let analyser;
+        let source;
+        let visualizerInitialized = false;
+
+        // Elements
+        const playBtn = document.getElementById('playBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const ejectBtn = document.getElementById('ejectBtn');
+        const fileInput = document.getElementById('fileInput');
+        const tapeLabel = document.getElementById('tapeLabel');
+        const reels = document.querySelectorAll('.reel');
+        const currentTimeEl = document.getElementById('currentTime');
+        const durationEl = document.getElementById('duration');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const canvas = document.getElementById('visualizerCanvas');
+        const canvasCtx = canvas.getContext('2d');
+
+        // --- THEME HANDLING ---
+        function setTheme(id) {
+            document.body.className = `theme-${id}`;
+            document.querySelectorAll('.theme-dot').forEach(d => d.classList.remove('active'));
+            document.querySelector(`.dot-${id}`).classList.add('active');
+            playClickSound(); // Theme change click
+        }
+
+        // --- SOUND EFFECTS (SYNTHETIC) ---
+        function playClickSound() {
+            if (!audioCtx) initAudioContext();
+            
+            // Create a short high-pitch "click"
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.1);
+            
+            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function initAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        // --- VISUALIZER ---
+        function setupVisualizer() {
+            if (visualizerInitialized) return;
+            initAudioContext();
+            
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 64; // Low resolution for retro look
+            
+            // Create source from the audio element
+            // Note: This needs to be done only once or it throws errors
+            if (!source) {
+                source = audioCtx.createMediaElementSource(audio);
+                source.connect(analyser);
+                analyser.connect(audioCtx.destination);
+            }
+            
+            visualizerInitialized = true;
+            drawVisualizer();
+        }
+
+        function drawVisualizer() {
+            requestAnimationFrame(drawVisualizer);
+            
+            if(!isPlaying) {
+                canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+                return;
+            }
+
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            analyser.getByteFrequencyData(dataArray);
+
+            canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const barWidth = (canvas.width / bufferLength) * 2.5;
+            let barHeight;
+            let x = 0;
+
+            // Get current accent color from CSS variable for bars
+            const computedStyle = getComputedStyle(document.body);
+            const accentColor = computedStyle.getPropertyValue('--accent-color').trim();
+
+            for (let i = 0; i < bufferLength; i++) {
+                barHeight = dataArray[i] / 2;
+                
+                // Draw bar
+                canvasCtx.fillStyle = accentColor;
+                canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+
+                x += barWidth + 2; // +2 for gap
+            }
+        }
+
+        // --- FILE HANDLING ---
+        ejectBtn.addEventListener('click', () => {
+            playClickSound();
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+        // Drag & Drop
+        document.body.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            document.body.classList.add('drag-active');
+        });
+
+        document.body.addEventListener('dragleave', (e) => {
+            document.body.classList.remove('drag-active');
+        });
+
+        document.body.addEventListener('drop', (e) => {
+            e.preventDefault();
+            document.body.classList.remove('drag-active');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        function handleFiles(files) {
+            const fileArray = Array.from(files).filter(file => file.type.startsWith('audio/'));
+            
+            if (fileArray.length > 0) {
+                playlist = fileArray.map(file => ({
+                    name: file.name.replace(/\.[^/.]+$/, ""),
+                    url: URL.createObjectURL(file)
+                }));
+                currentTrackIndex = 0;
+                loadTrack(currentTrackIndex);
+                playTrack();
+                playClickSound(); // Mechanical thud sound (simulated)
+            } else {
+                alert("Please drop valid Audio files (MP3, WAV).");
+            }
+        }
+
+        // --- PLAYBACK LOGIC ---
+        function loadTrack(index) {
+            if (playlist.length === 0) return;
+            const track = playlist[index];
+            audio.src = track.url;
+            audio.load();
+            tapeLabel.textContent = track.name;
+            progressBar.style.width = '0%';
+            
+            // Ensure visualizer is connected
+            setupVisualizer();
+        }
+
+        function playTrack() {
+            if (playlist.length === 0) return;
+            
+            // Resume context if suspended (browser policy)
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            audio.play().then(() => {
+                isPlaying = true;
+                playBtn.textContent = '⏸';
+                reels.forEach(r => r.classList.add('spinning'));
+            }).catch(e => console.error("Playback error:", e));
+        }
+
+        function pauseTrack() {
+            audio.pause();
+            isPlaying = false;
+            playBtn.textContent = '▶';
+            reels.forEach(r => r.classList.remove('spinning'));
+        }
+
+        function togglePlay() {
+            playClickSound();
+            if (playlist.length === 0) { alert("Insert tape first!"); return; }
+            if (audio.paused) playTrack();
+            else pauseTrack();
+        }
+
+        function nextTrack() {
+            playClickSound();
+            if (playlist.length === 0) return;
+            currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
+            loadTrack(currentTrackIndex);
+            if (isPlaying) playTrack();
+        }
+
+        function prevTrack() {
+            playClickSound();
+            if (playlist.length === 0) return;
+            currentTrackIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length;
+            loadTrack(currentTrackIndex);
+            if (isPlaying) playTrack();
+        }
+
+        playBtn.addEventListener('click', togglePlay);
+        nextBtn.addEventListener('click', nextTrack);
+        prevBtn.addEventListener('click', prevTrack);
+        audio.addEventListener('ended', nextTrack);
+
+        // --- TIME & PROGRESS ---
+        function formatTime(s) {
+             if(isNaN(s)) return "0:00";
+             const min = Math.floor(s / 60);
+             const sec = Math.floor(s % 60);
+             return `${min}:${sec < 10 ? '0' : ''}${sec}`;
+        }
+
+        audio.addEventListener('timeupdate', () => {
+            if(audio.duration) {
+                const percent = (audio.currentTime / audio.duration) * 100;
+                progressBar.style.width = percent + '%';
+                currentTimeEl.textContent = formatTime(audio.currentTime);
+                durationEl.textContent = formatTime(audio.duration);
+            }
+        });
+        
+        audio.addEventListener('loadedmetadata', () => {
+             durationEl.textContent = formatTime(audio.duration);
+        });
+
+        progressContainer.addEventListener('click', (e) => {
+            if (!audio.duration) return;
+            const rect = progressContainer.getBoundingClientRect();
+            const percent = (e.clientX - rect.left) / rect.width;
+            audio.currentTime = percent * audio.duration;
+        });
+
+        // --- KEYBOARD CONTROLS ---
+        document.addEventListener('keydown', (e) => {
+            if(['Space', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+                e.preventDefault(); 
+            }
+
+            switch(e.code) {
+                case 'Space':
+                    togglePlay();
+                    break;
+                case 'ArrowRight':
+                    if(e.shiftKey) nextTrack();
+                    else {
+                        audio.currentTime += 5;
+                        playClickSound(); // Small click for skipping
+                    }
+                    break;
+                case 'ArrowLeft':
+                    if(e.shiftKey) prevTrack();
+                    else {
+                        audio.currentTime -= 5;
+                        playClickSound();
+                    }
+                    break;
+            }
+        });
+    </script>
+</body>
+</html>
