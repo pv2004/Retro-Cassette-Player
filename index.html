@@ -2,14 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Retro Cassette Player - Ultimate</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Retro Cassette Player - Responsive</title>
     <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
     
     <style>
         /* --- CSS VARIABLES --- */
         :root {
-            /* Default Theme (Orange/Brown) */
             --bg-gradient: linear-gradient(135deg, #4a3b32 0%, #2c1810 100%);
             --cassette-body: #2a3138;
             --cassette-body-inset: #1a1f24;
@@ -41,15 +40,17 @@
             transition: background 0.5s ease;
         }
 
-        /* Drag & Drop Overlay Cue */
-        body.drag-active::after {
-            content: 'DROP TAPE HERE';
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.7);
-            z-index: 10;
-            display: flex; justify-content: center; align-items: center;
-            color: white; font-size: 40px; font-family: 'Permanent Marker', cursive;
-            pointer-events: none;
+        /* Drag & Drop Overlay (Desktop Only) */
+        @media (min-width: 600px) {
+            body.drag-active::after {
+                content: 'DROP TAPE HERE';
+                position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.7);
+                z-index: 10;
+                display: flex; justify-content: center; align-items: center;
+                color: white; font-size: 40px; font-family: 'Permanent Marker', cursive;
+                pointer-events: none;
+            }
         }
 
         body::before {
@@ -63,9 +64,9 @@
         .main-wrapper {
             position: relative; z-index: 2;
             display: flex; flex-direction: column; align-items: center; gap: 20px;
+            width: 100%;
         }
 
-        /* --- THEME SELECTORS --- */
         .theme-selector { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: 300px; }
         .theme-dot {
             width: 25px; height: 25px; border-radius: 50%; cursor: pointer;
@@ -85,6 +86,9 @@
             box-shadow: 0 20px 50px rgba(0,0,0,0.6), inset 0 2px 5px rgba(255,255,255,0.1);
             overflow: hidden;
             transition: background 0.5s ease, border-color 0.5s ease;
+            
+            /* Responsive Origin */
+            transform-origin: top center;
         }
         
         .cassette-container::after {
@@ -102,7 +106,6 @@
         .screw::before { content: ''; position: absolute; top: 50%; left: 50%; width: 10px; height: 2px; background: #333; transform: translate(-50%, -50%) rotate(45deg); }
         .screw.tl { top: 12px; left: 12px; } .screw.tr { top: 12px; right: 12px; } .screw.bl { bottom: 12px; left: 12px; } .screw.br { bottom: 12px; right: 12px; }
 
-        /* --- LABEL AREA --- */
         .cassette-label-area {
             position: absolute; top: 40px; left: 25px; right: 25px; height: 225px;
             background: var(--label-bg);
@@ -135,7 +138,6 @@
             transition: background 0.5s ease;
         }
         
-        /* The Visualizer Canvas */
         #visualizerCanvas {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 1; opacity: 0.5;
@@ -217,6 +219,25 @@
             background: rgba(0,0,0,0.3); padding: 5px 15px; border-radius: 5px;
         }
 
+        /* --- RESPONSIVE MEDIA QUERY --- */
+        @media screen and (max-width: 540px) {
+            .cassette-container {
+                /* Calculates the perfect scale to fit screen width */
+                /* (Screen Width - 40px padding) / 500px Original Width */
+                transform: scale(calc((100vw - 40px) / 500));
+                /* Adjust bottom margin because scale leaves empty space */
+                margin-bottom: -60px;
+            }
+            .main-wrapper {
+                justify-content: flex-start;
+                padding-top: 40px;
+            }
+            .time-display-waiting {
+                font-size: 14px;
+                margin-top: 10px;
+            }
+        }
+
         #fileInput { display: none; }
     </style>
 </head>
@@ -286,19 +307,17 @@
     </div>
 
     <script>
-        // --- GLOBAL VARIABLES ---
         const audio = new Audio();
         let playlist = [];
         let currentTrackIndex = 0;
         let isPlaying = false;
         
-        // Web Audio API for Visualizer & SFX
-        let audioCtx; // Initialized on user interaction
+        // Web Audio API
+        let audioCtx;
         let analyser;
         let source;
         let visualizerInitialized = false;
 
-        // Elements
         const playBtn = document.getElementById('playBtn');
         const prevBtn = document.getElementById('prevBtn');
         const nextBtn = document.getElementById('nextBtn');
@@ -313,32 +332,24 @@
         const canvas = document.getElementById('visualizerCanvas');
         const canvasCtx = canvas.getContext('2d');
 
-        // --- THEME HANDLING ---
         function setTheme(id) {
             document.body.className = `theme-${id}`;
             document.querySelectorAll('.theme-dot').forEach(d => d.classList.remove('active'));
             document.querySelector(`.dot-${id}`).classList.add('active');
-            playClickSound(); // Theme change click
+            playClickSound();
         }
 
-        // --- SOUND EFFECTS (SYNTHETIC) ---
         function playClickSound() {
             if (!audioCtx) initAudioContext();
-            
-            // Create a short high-pitch "click"
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            
             osc.connect(gain);
             gain.connect(audioCtx.destination);
-            
             osc.type = 'square';
             osc.frequency.setValueAtTime(200, audioCtx.currentTime);
             osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.1);
-            
             gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
-            
             osc.start();
             osc.stop(audioCtx.currentTime + 0.1);
         }
@@ -349,60 +360,44 @@
             }
         }
 
-        // --- VISUALIZER ---
         function setupVisualizer() {
             if (visualizerInitialized) return;
             initAudioContext();
-            
             analyser = audioCtx.createAnalyser();
-            analyser.fftSize = 64; // Low resolution for retro look
-            
-            // Create source from the audio element
-            // Note: This needs to be done only once or it throws errors
+            analyser.fftSize = 64;
             if (!source) {
                 source = audioCtx.createMediaElementSource(audio);
                 source.connect(analyser);
                 analyser.connect(audioCtx.destination);
             }
-            
             visualizerInitialized = true;
             drawVisualizer();
         }
 
         function drawVisualizer() {
             requestAnimationFrame(drawVisualizer);
-            
             if(!isPlaying) {
                 canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
                 return;
             }
-
             const bufferLength = analyser.frequencyBinCount;
             const dataArray = new Uint8Array(bufferLength);
             analyser.getByteFrequencyData(dataArray);
-
             canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-            
             const barWidth = (canvas.width / bufferLength) * 2.5;
             let barHeight;
             let x = 0;
-
-            // Get current accent color from CSS variable for bars
             const computedStyle = getComputedStyle(document.body);
             const accentColor = computedStyle.getPropertyValue('--accent-color').trim();
 
             for (let i = 0; i < bufferLength; i++) {
                 barHeight = dataArray[i] / 2;
-                
-                // Draw bar
                 canvasCtx.fillStyle = accentColor;
                 canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
-
-                x += barWidth + 2; // +2 for gap
+                x += barWidth + 2;
             }
         }
 
-        // --- FILE HANDLING ---
         ejectBtn.addEventListener('click', () => {
             playClickSound();
             fileInput.click();
@@ -410,7 +405,6 @@
 
         fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
 
-        // Drag & Drop
         document.body.addEventListener('dragover', (e) => {
             e.preventDefault();
             document.body.classList.add('drag-active');
@@ -428,7 +422,6 @@
 
         function handleFiles(files) {
             const fileArray = Array.from(files).filter(file => file.type.startsWith('audio/'));
-            
             if (fileArray.length > 0) {
                 playlist = fileArray.map(file => ({
                     name: file.name.replace(/\.[^/.]+$/, ""),
@@ -437,13 +430,12 @@
                 currentTrackIndex = 0;
                 loadTrack(currentTrackIndex);
                 playTrack();
-                playClickSound(); // Mechanical thud sound (simulated)
+                playClickSound();
             } else {
                 alert("Please drop valid Audio files (MP3, WAV).");
             }
         }
 
-        // --- PLAYBACK LOGIC ---
         function loadTrack(index) {
             if (playlist.length === 0) return;
             const track = playlist[index];
@@ -451,19 +443,12 @@
             audio.load();
             tapeLabel.textContent = track.name;
             progressBar.style.width = '0%';
-            
-            // Ensure visualizer is connected
             setupVisualizer();
         }
 
         function playTrack() {
             if (playlist.length === 0) return;
-            
-            // Resume context if suspended (browser policy)
-            if (audioCtx && audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
             audio.play().then(() => {
                 isPlaying = true;
                 playBtn.textContent = '⏸';
@@ -506,7 +491,6 @@
         prevBtn.addEventListener('click', prevTrack);
         audio.addEventListener('ended', nextTrack);
 
-        // --- TIME & PROGRESS ---
         function formatTime(s) {
              if(isNaN(s)) return "0:00";
              const min = Math.floor(s / 60);
@@ -522,7 +506,6 @@
                 durationEl.textContent = formatTime(audio.duration);
             }
         });
-        
         audio.addEventListener('loadedmetadata', () => {
              durationEl.textContent = formatTime(audio.duration);
         });
@@ -534,29 +517,19 @@
             audio.currentTime = percent * audio.duration;
         });
 
-        // --- KEYBOARD CONTROLS ---
         document.addEventListener('keydown', (e) => {
             if(['Space', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
                 e.preventDefault(); 
             }
-
             switch(e.code) {
-                case 'Space':
-                    togglePlay();
-                    break;
+                case 'Space': togglePlay(); break;
                 case 'ArrowRight':
                     if(e.shiftKey) nextTrack();
-                    else {
-                        audio.currentTime += 5;
-                        playClickSound(); // Small click for skipping
-                    }
+                    else { audio.currentTime += 5; playClickSound(); }
                     break;
                 case 'ArrowLeft':
                     if(e.shiftKey) prevTrack();
-                    else {
-                        audio.currentTime -= 5;
-                        playClickSound();
-                    }
+                    else { audio.currentTime -= 5; playClickSound(); }
                     break;
             }
         });
