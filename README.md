@@ -35,7 +35,7 @@ The most unique aspect of this player is that **zero external image assets were 
 
 ## 🚀 How to Use
 
-1. **Open the Player:** [Link to your GitHub Pages demo]
+1. **Open the Player:**  https://pv2004.github.io/Retro-Cassette-Player/
 2. **Insert a Tape:** - **Click** the Eject button (⏏) to select files.
    - **OR Drag & Drop** your MP3 files anywhere on the screen.
 3. **Customize:** Click the colored dots at the top to change the player casing.
