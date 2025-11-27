@@ -40,10 +40,6 @@ The most unique aspect of this player is that **zero external image assets were 
    - **OR Drag & Drop** your MP3 files anywhere on the screen.
 3. **Customize:** Click the colored dots at the top to change the player casing.
 
-## 🛠️ Installation & Setup
 
-If you want to run this locally or modify the code:
 
-1. **Clone the repository**
-   ```bash
-   git clone [https://github.com/YOUR-USERNAME/retro-cassette-player.git](https://github.com/YOUR-USERNAME/retro-cassette-player.git)
+
